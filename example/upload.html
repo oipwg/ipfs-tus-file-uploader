@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+	<input type="file" id="file" name="">
+</body>
+<script src="tus.min.js"></script>
+<script type="text/javascript">
+	var ids = []
+
+	document.getElementById("file").addEventListener("change", function(e) {
+	    // Get the selected file from the input element
+	    var file = e.target.files[0]
+
+	    // Create a new tus upload
+	    var upload = new tus.Upload(file, {
+	    	metadata: {
+	    		"name": file.name
+	    	},
+	        endpoint: "http://localhost:11945/files/",
+	        retryDelays: [0, 1000, 3000, 5000],
+	        onError: function(error) {
+	            console.log("Failed because: " + error)
+	        },
+	        onProgress: function(bytesUploaded, bytesTotal) {
+	            var percentage = (bytesUploaded / bytesTotal * 100).toFixed(2)
+	            console.log(bytesUploaded, bytesTotal, percentage + "%")
+	        },
+	        onSuccess: function() {
+	        	ids.push(upload.url.replace('http://localhost:11945/files/', ''));
+	        	console.log(ids);
+	            //console.log("Download %s from %s", upload.file.name, upload.url)
+	        }
+	    })
+
+	    // Start the upload
+	    upload.start()
+	})
+
+	var addToIPFS = function(){
+		// construct an HTTP request
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "http://localhost:11945/addToIPFS", true);
+		xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+
+		// send the collected data as JSON
+		xhr.send(JSON.stringify({fileids: ids}));
+
+		xhr.onloadend = function () {
+			// done
+			console.log(xhr.response);
+		};
+	}
+</script>
+</html>

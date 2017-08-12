@@ -1,0 +1,35 @@
+{
+  "name": "ipfs-tus-uploader",
+  "version": "1.0.0",
+  "description": "Add files in a folder to IPFS with resumable uploading provided by Tus!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oipwg/ipfs-tus-uploader.git"
+  },
+  "keywords": [
+    "ipfs",
+    "tus",
+    "ipfs.io",
+    "tus.io",
+    "alexandria",
+    "oipwg",
+    "oip"
+  ],
+  "author": "Skylar Ostler <sky@alexandria.io>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/oipwg/ipfs-tus-uploader/issues"
+  },
+  "homepage": "https://github.com/oipwg/ipfs-tus-uploader#readme",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "express": "^4.15.4",
+    "ipfs-api": "^14.1.2",
+    "rimraf": "^2.6.1",
+    "tus-node-server": "^0.2.3"
+  }
+}
