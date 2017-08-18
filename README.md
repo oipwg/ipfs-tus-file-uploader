@@ -10,10 +10,8 @@ Note: if you do not have Node or NPM installed, go [here](https://treehouse.gith
 brew update  
 brew install node
 </pre></code>
-Note: if you don't have brew installed, enter this command
-<code><pre>
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-</pre></code>  
+Note: if you don't have brew installed, enter this command:  
+`/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`  
 or go [here](https://docs.brew.sh/Installation.html) for full install instructions.  
 <code><pre>
 npm build  
