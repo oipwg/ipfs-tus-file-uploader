@@ -85,10 +85,15 @@ app.post('/addToIPFS', function(req, res){
 })
 
 app.get('/check/:id', function(req, res){
+	var matched = false;
 	for (var i = 0; i < ipfsStatus.length; i++) {
 		if (req.params.id === ipfsStatus[i].id){
+			matched = true;
 			res.send(ipfsStatus[i]);
 		}
+	}
+	if (!matched){
+		res.send({id: req.params.id});
 	}
 })
 
@@ -96,7 +101,7 @@ var port = 11945;
 var host = "localhost"
 
 app.listen(port, host);
-console.log("Starting ipfs-tus-uploader on " + host + ":" + port);
+console.log("Started ipfs-tus-uploader on " + host + ":" + port);
 
 var writeDataFile = function(){
 	fs.writeFileSync(dataFile, JSON.stringify({"files": files, "ipfsStatus": ipfsStatus}, null, 4));
@@ -111,8 +116,6 @@ var processIPFS = function(callback){
 	var cbCalled = false;
 
 	for (var i = 0; i < ipfsStatus.length; i++) {
-		//console.log(ipfsStatus[i]);
-
 		if (ipfsStatus[i].status === "not_started" || ipfsStatus[i].status === "ipfs_directory_create_fail"){
 			ipfsStatus[i].status = "ipfs_directory_create_start";
 			// Make the directory
@@ -124,7 +127,7 @@ var processIPFS = function(callback){
 		} else if (ipfsStatus[i].status === "ipfs_file_copy_complete" || ipfsStatus[i].status === "ipfs_file_add_retry"){
 			ipfsStatus[i].status = "ipfs_file_add_start";
 			addFilesToIPFS(i);
-		} else if (ipfsStatus[i].status === "ipfs_file_add_start" || ipfsStatus[i].status === "ipfs_file_add_success" || ipfsStatus[i].status === "ipfs_file_add_inprogress"){
+		} else if (ipfsStatus[i].status === "ipfs_file_add_start" || ipfsStatus[i].status === "ipfs_file_add_success" || ipfsStatus[i].status === "ipfs_file_add_error" || ipfsStatus[i].status === "ipfs_add_check_error"){
 			checkIPFSaddStatus(i);
 		}
 
@@ -156,8 +159,13 @@ var makeIPFSDirectory = function(ipfsNum){
 var copyFilesToIPFSDirectory = function(ipfsNum){
 	var allAdded = true;
 	for (var i = 0; i < ipfsStatus[ipfsNum].ids.length; i++) {
+		if (!ipfsStatus[ipfsNum].ids[i])
+			continue;
+
+		var match = false;
 		for (var j = 0; j < files.length; j++) {
 			if (files[j].id == ipfsStatus[ipfsNum].ids[i]){
+				match = true;
 				if (fs.existsSync(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i])){
 					var decodedName = new Buffer(files[j].name, 'base64').toString('ascii');
 					
@@ -180,7 +188,11 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 					ipfsStatus[ipfsNum].status = "ipfs_file_does_not_exist";
 				}
 			}
-		}	
+		}
+
+		if (!match){
+			allAdded = false;
+		}
 	}
 
 	if (allAdded){
@@ -226,7 +238,6 @@ var addFilesToIPFS = function(ipfsNum){
 			return;
 		}
 
-		console.log(result);
 		if (!result || result === [] || !result[result.length - 1] || !result[result.length - 1].hash){
 			ipfsStatus[ipfsNum].status = "ipfs_file_add_retry";
 			return;
@@ -241,6 +252,9 @@ var addFilesToIPFS = function(ipfsNum){
 
 var checkIPFSaddStatus = function(ipfsNum){
 	if (!ipfsStatus[ipfsNum] || !ipfsStatus[ipfsNum].mainHash){
+		if (ipfsStatus[ipfsNum].status === "ipfs_file_add_error"){
+			ipfsStatus[ipfsNum].status = "ipfs_file_add_retry";
+		}
 		return;
 	}
 
