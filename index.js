@@ -178,7 +178,7 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 						copyStat = fs.statSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName);
 					}
 					
-					if (checkStat && mainstats.size === copystats.size){
+					if (checkStat && mainStat.size === copyStat.size){
 						continue;
 					} else {
 						allAdded = false;
