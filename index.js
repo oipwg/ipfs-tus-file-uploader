@@ -170,18 +170,21 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 					var decodedName = new Buffer(files[j].name, 'base64').toString('ascii');
 					
 					// If we have already copied the file, move on.
-					if (fs.existsSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName))
+					var mainStat = fs.statSync(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i]);
+					var copyStat = fs.statSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName);
+					if (mainstats.size === copystats.size){
 						continue;
+					} else {
+						allAdded = false;
+						ipfsStatus[ipfsNum].status = "ipfs_file_copy_inprogress";
 
-					allAdded = false;
-					ipfsStatus[ipfsNum].status = "ipfs_file_copy_inprogress";
-
-					copyFile(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i], __dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName, function(err){
-						if (err){
-							console.log(err);
-							ipfsStatus[ipfsNum].status = "ipfs_file_copy_error";
-						}
-					});
+						copyFile(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i], __dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName, function(err){
+							if (err){
+								console.log(err);
+								ipfsStatus[ipfsNum].status = "ipfs_file_copy_error";
+							}
+						});
+					}
 				} else {
 					//res.send("File does not exist! "+ ipfsStatus[ipfsNum].ids[i])
 					console.log("File does not exist! "+ ipfsStatus[ipfsNum].ids[i]);
