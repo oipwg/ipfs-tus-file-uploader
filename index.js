@@ -170,9 +170,14 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 					var decodedName = new Buffer(files[j].name, 'base64').toString('ascii');
 					
 					// If we have already copied the file, move on.
-					var mainStat = fs.statSync(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i]);
-					var copyStat = fs.statSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName);
-					if (mainstats.size === copystats.size){
+					var checkStat = false;
+					if (fs.existsSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName)){
+						checkStat = true;
+						var mainStat = fs.statSync(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i]);
+						var copyStat = fs.statSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName);
+					}
+					
+					if (checkStat && mainstats.size === copystats.size){
 						continue;
 					} else {
 						allAdded = false;
