@@ -171,10 +171,11 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 					
 					// If we have already copied the file, move on.
 					var checkStat = false;
+					var mainStat, copyStat;
 					if (fs.existsSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName)){
 						checkStat = true;
-						var mainStat = fs.statSync(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i]);
-						var copyStat = fs.statSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName);
+						mainStat = fs.statSync(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i]);
+						copyStat = fs.statSync(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName);
 					}
 					
 					if (checkStat && mainstats.size === copystats.size){
