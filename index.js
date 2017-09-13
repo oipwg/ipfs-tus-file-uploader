@@ -14,6 +14,8 @@ var rimraf = require('rimraf')
 
 var files = [];
 var ipfsStatus = [];
+var ipfsState = "idle";
+var fsState = "idle";
 var dataFile = __dirname + '/data.json';
 
 if (fs.existsSync(dataFile)){
@@ -114,17 +116,16 @@ setInterval(function(){
 
 var processIPFS = function(callback){
 	var cbCalled = false;
-
 	for (var i = 0; i < ipfsStatus.length; i++) {
 		if (ipfsStatus[i].status === "not_started" || ipfsStatus[i].status === "ipfs_directory_create_fail"){
 			ipfsStatus[i].status = "ipfs_directory_create_start";
 			// Make the directory
 			makeIPFSDirectory(i);
-		} else if (ipfsStatus[i].status === "ipfs_directory_create_complete" || ipfsStatus[i].status === "ipfs_file_copy_start" || ipfsStatus[i].status === "ipfs_file_copy_inprogress") {
+		} else if (ipfsStatus[i].status === "ipfs_directory_create_complete" || ipfsStatus[i].status === "ipfs_file_copy_start" || ipfsStatus[i].status === "ipfs_file_copy_inprogress" || ipfsStatus[i].status === "ipfs_file_copy_queue") {
 			ipfsStatus[i].status = "ipfs_file_copy_start";
 			// Move the files into place.
 			copyFilesToIPFSDirectory(i);
-		} else if (ipfsStatus[i].status === "ipfs_file_copy_complete" || ipfsStatus[i].status === "ipfs_file_add_retry"){
+		} else if (ipfsStatus[i].status === "ipfs_file_copy_complete" || ipfsStatus[i].status === "ipfs_file_add_retry" || ipfsStatus[i].status === "waiting_on_ipfs_add_queue"){
 			ipfsStatus[i].status = "ipfs_file_add_start";
 			addFilesToIPFS(i);
 		} else if (ipfsStatus[i].status === "ipfs_file_add_start" || ipfsStatus[i].status === "ipfs_file_add_success" || ipfsStatus[i].status === "ipfs_file_add_error" || ipfsStatus[i].status === "ipfs_add_check_error"){
@@ -182,7 +183,12 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 						continue;
 					} else {
 						allAdded = false;
-						ipfsStatus[ipfsNum].status = "ipfs_file_copy_inprogress";
+
+						if (fsState != "idle" && !ipfsStatus[ipfsNum].copyStart){
+							ipfsStatus[ipfsNum].status = "ipfs_file_copy_queue";
+						} else {
+							ipfsStatus[ipfsNum].status = "ipfs_file_copy_inprogress";
+						}
 
 						copyFile(__dirname + '/files/' + ipfsStatus[ipfsNum].ids[i], __dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/' + decodedName, function(err){
 							if (err){
@@ -210,9 +216,16 @@ var copyFilesToIPFSDirectory = function(ipfsNum){
 }
 
 var copyFile = function (source, target, cb) {
+	if (fsState != "idle")
+		return;
+
+	fsState = "copying";
+
 	var cbCalled = false;
 
 	function done(err) {
+		fsState = "idle";
+
 		if (!cbCalled) {
 			cb(err);
 			cbCalled = true;
@@ -239,24 +252,32 @@ var copyFile = function (source, target, cb) {
 }
 
 var addFilesToIPFS = function(ipfsNum){
-	ipfsStatus[ipfsNum].status = "ipfs_file_add_inprogress";
-	ipfs.util.addFromFs(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/', {recursive: true}, (err, result) => {
-		if (err){
-			console.log(err);
-			ipfsStatus[ipfsNum].status = "ipfs_file_add_error";
-			return;
-		}
+	if (ipfsState === "idle"){
+		ipfsState = "addingFolder";
 
-		if (!result || result === [] || !result[result.length - 1] || !result[result.length - 1].hash){
-			ipfsStatus[ipfsNum].status = "ipfs_file_add_retry";
-			return;
-		}
+		ipfsStatus[ipfsNum].status = "ipfs_file_add_inprogress";
+		ipfs.util.addFromFs(__dirname + '/ipfs/' + ipfsStatus[ipfsNum].id + '/', {recursive: true}, (err, result) => {
+			ipfsState = "idle";
 
-		ipfsStatus[ipfsNum].ipfsResponse = result;
-		ipfsStatus[ipfsNum].mainHash = result[result.length - 1].hash;
+			if (err){
+				console.log(err);
+				ipfsStatus[ipfsNum].status = "ipfs_file_add_error";
+				return;
+			}
 
-		ipfsStatus[ipfsNum].status = "ipfs_file_add_success";
-	})
+			if (!result || result === [] || !result[result.length - 1] || !result[result.length - 1].hash){
+				ipfsStatus[ipfsNum].status = "ipfs_file_add_retry";
+				return;
+			}
+
+			ipfsStatus[ipfsNum].ipfsResponse = result;
+			ipfsStatus[ipfsNum].mainHash = result[result.length - 1].hash;
+
+			ipfsStatus[ipfsNum].status = "ipfs_file_add_success";
+		})
+	} else {
+		ipfsStatus[ipfsNum].status = "waiting_on_ipfs_add_queue";
+	}
 }
 
 var checkIPFSaddStatus = function(ipfsNum){
